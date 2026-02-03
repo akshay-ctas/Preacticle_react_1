@@ -1,154 +1,45 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import React, { useState } from "react";
+import { createUser } from "../api/user-api";
 
-const Form = ({ setTableData }) => {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    username: "",
-    password: "",
-    age: "",
-    phone: "",
-    address: "",
-    gender: "",
-    role: "",
-  });
-  //   const [name, setName] = useState("");
-  //   const [email, setEmail] = useState("");
-  //   const [username, setUsername] = useState("");
-  //   const [password, setPassword] = useState("");
-  //   const [age, setAge] = useState("");
-  //   const [phone, setPhone] = useState("");
-  //   const [address, setAddress] = useState("");
-  //   const [gender, setGender] = useState("");
-  //   const [role, setRole] = useState("");
-  //   const [error, setError] = useState([]);
-
-  //   const handleName = (e) => {
-  //     if (e.target.value === null) {
-  //       setError([...error, "please enter your name"]);
-  //     }
-  //     setName(e.target.value);
-  //   };
-  //   const handleEmail = (e) => {
-  //     if (e.target.value === null) {
-  //       setError([...error, "please enter your email"]);
-  //     }
-  //     if (!e.target.value.includes("@")) {
-  //       setError([...error, "please enter valid email"]);
-  //     }
-  //     setEmail(e.target.value);
-  //   };
-  //   const handleUsername = (e) => {
-  //     if (e.target.value === null) {
-  //       setError([...error, "please enter your user name"]);
-  //     }setTableData
-  //     setUsername(e.target.value);
-  //   };
-  //   const handlePassword = (e) => {
-  //     if (e.target.value === null) {
-  //       setError([...error, "please enter your password"]);
-  //     }
-  //     setPassword(e.target.value);
-  //   };
-
-  //   const handleAge = (e) => {
-  //     if (e.target.value === null) {
-  //       setError([...error, "please enter your Age"]);
-  //     }
-  //     setAge(e.target.value);
-  //   };
-
-  //   const hanldePhone = (e) => {
-  //     if (e.target.value === "") {
-  //       setError([...error, "please enter your phone number"]);
-  //     }
-  //     setPhone(e.target.value);
-  //   };
-
-  //   const handleAddress = (e) => {
-  //     if (e.target.value === null) {
-  //       setError([...error, "please enter your address"]);
-  //     }
-  //     setAddress(e.target.value);
-  //   };
-
-  //   const handleGender = (e) => {
-  //     setGender(e.target.value);
-  //   };
-
-  //   const handleRole = (e) => {
-  //     setRole(e.target.value);
-  //   };
-
-  //   const handleSubmit = (e) => {
-  //     e.preventDefault();
-  //     console.log({
-  //       name,
-  //       email,
-  //       username,
-  //       password,
-  //       phone,
-  //       age,
-  //       role,
-  //       address,
-  //       gender,
-  //     });
-  //   };
-  const [errors, setErrors] = useState([]);
+const initialState = {
+  name: "",
+  email: "",
+  username: "",
+  password: "",
+  age: "",
+  phone: "",
+  address: "",
+  gender: "",
+  role: "",
+};
+const Form = () => {
+  const queryClient = useQueryClient();
+  const [formData, setFormData] = useState(initialState);
   const handleInput = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    // setErrors((prev) => ({ ...prev, [name]: "" }));
   };
   const handleSubmit = (e) => {
-    let errors = [];
     e.preventDefault();
-    // console.log(formData.name);
-
-    // if (!formData.name.trim()) {
-    //   setError((prev) => [...prev, "name is required"]);
-    // }
-    // console.log(error);
-
-    if (!formData.name.trim()) {
-      errors.push("Name is require");
-    }
-    if (!formData.email.trim()) {
-      errors.push("Email is require");
-    }
-    if (!formData.username.trim()) {
-      errors.push("Username is require");
-    }
-    if (!formData.password.trim()) {
-      errors.push("Password is require");
-    }
-    if (!formData.age.trim()) {
-      errors.push("Age is require");
-    }
-    if (!formData.phone.trim()) {
-      errors.push("Phone is require");
-    }
-    if (!formData.gender.trim()) {
-      errors.push("Gender is require");
-    }
-    if (!formData.role.trim()) {
-      errors.push("Role is require");
-    }
-    if (!formData.address.trim()) {
-      errors.push("address is require");
-    }
-    if (errors.length > 0) {
-      setErrors(errors);
-    }
-    if (errors.length === 0) {
-      setTableData((prev) => [...prev, formData]);
-    }
+    userMutation(formData);
   };
+
+  const { mutate: userMutation } = useMutation({
+    mutationFn: (newUser) => createUser(newUser),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      alert("User successfully created!");
+
+      setFormData(initialState);
+    },
+    onError: (err) => {
+      alert(err);
+      setFormData(initialState);
+    },
+  });
   return (
     <div className="flex flex-col  mt-10">
-      {errors?.map((error) => {
-        return <span className="text-red-500">{error}</span>;
-      })}
       <form onSubmit={handleSubmit}>
         <div className="flex flex-row w-full gap-4 mb-7">
           <div className=" flex flex-col w-1/3 ">
