@@ -1,8 +1,22 @@
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { getUsers } from "../api/user-api";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { deleteUser, getUsers, updateUser } from "../api/user-api";
 import { useState } from "react";
+import DeleteConfirmModal from "./DeleteConfirmModal";
+import UpdateModel from "./UpdateModel";
 
 const Data = () => {
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
+
+  const [isUpdateOpen, setIsUpdateOpen] = useState(false);
+  const [userToEdit, setUserToEdit] = useState(null);
+
+  const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const { data } = useQuery({
     queryKey: ["users", page],
@@ -12,6 +26,25 @@ const Data = () => {
   const totalPages = Math.ceil(
     data?.pagination?.total / data?.pagination?.limit,
   );
+  const { mutate: deleteUserMutation } = useMutation({
+    mutationFn: (id) => deleteUser(id),
+    onSuccess: (data, id) => {
+      queryClient.setQueryData(["users", page], (oldUsers) => {
+        if (!oldUsers) return oldUsers;
+        return {
+          ...oldUsers,
+          data: oldUsers.data.filter((user) => user._id !== id),
+        };
+      });
+    },
+  });
+
+  const { mutate: updateMutation } = useMutation({
+    mutationFn: ({ id, data }) => updateUser(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+    },
+  });
   return (
     <section>
       <table className="mt-6">
@@ -75,12 +108,22 @@ const Data = () => {
                   <td className="px-4 py-2 text-sm border">
                     <span className="flex flex-row gap-2">
                       <button
-                        onClick={() => {}}
+                        onClick={() => {
+                          // deleteUserMutation.mutate(data._id)
+                          setIsDeleteOpen(true);
+                          setUserToDelete(data);
+                        }}
                         className="bg-red-300 cursor-pointer px-2 py-1 font-bold  rounded hover:bg-red-600 hover:text-white"
                       >
                         Delete
                       </button>
-                      <button className="bg-green-300 cursor-pointer px-2 py-1 font-bold  rounded hover:bg-green-600 hover:text-white">
+                      <button
+                        onClick={() => {
+                          setIsUpdateOpen(true);
+                          setUserToEdit(data);
+                        }}
+                        className="bg-green-300 cursor-pointer px-2 py-1 font-bold  rounded hover:bg-green-600 hover:text-white"
+                      >
                         Edit
                       </button>
                     </span>
@@ -90,29 +133,42 @@ const Data = () => {
             })
           )}
         </tbody>
-        <div className="flex justify-center items-center gap-4 mt-2">
-          <button
-            disabled={page === 1}
-            onClick={() => setPage((prev) => prev - 1)}
-            className="bg-gray-800 text-white px-2 py-1 rounded cursor-pointer hover:bg-gray-700"
-          >
-            prev
-          </button>
-          <p>{page}</p>
-          <p>...</p>
-          <p>{totalPages}</p>
-          <button
-            disabled={
-              page >=
-              Math.ceil(data?.pagination?.total / data?.pagination?.limit)
-            }
-            onClick={() => setPage((prev) => prev + 1)}
-            className="bg-gray-800 text-white px-2 py-1 rounded cursor-pointer hover:bg-gray-700"
-          >
-            next
-          </button>
-        </div>
       </table>
+      {isDeleteOpen && (
+        <DeleteConfirmModal
+          user={userToDelete}
+          setIsDeleteOpen={setIsDeleteOpen}
+          deleteUserMutation={deleteUserMutation}
+        />
+      )}
+      {isUpdateOpen && (
+        <UpdateModel
+          setIsUpdateOpen={setIsUpdateOpen}
+          user={userToEdit}
+          updateMutation={updateMutation}
+        />
+      )}
+      <div className="flex justify-center items-center gap-4 mt-2">
+        <button
+          disabled={page === 1}
+          onClick={() => setPage((prev) => prev - 1)}
+          className="bg-gray-800 text-white px-2 py-1 rounded cursor-pointer hover:bg-gray-700"
+        >
+          prev
+        </button>
+        <p>{page}</p>
+        <p>...</p>
+        <p>{totalPages}</p>
+        <button
+          disabled={
+            page >= Math.ceil(data?.pagination?.total / data?.pagination?.limit)
+          }
+          onClick={() => setPage((prev) => prev + 1)}
+          className="bg-gray-800 text-white px-2 py-1 rounded cursor-pointer hover:bg-gray-700"
+        >
+          next
+        </button>
+      </div>
     </section>
   );
 };
